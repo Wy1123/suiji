@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>随机学生选择器</title>
+		<script  type="text/javascript" src="js/index.js"></script>	
+		<script  type="text/javascript" src="js/bootstrap.min.js"></script>
+		<script  type="text/javascript" src="js/bootstrap.js"></script>
+		<link type="text/css" rel="stylesheet"  href="./css/index.css" />
+		<link type="text/css" rel="stylesheet"  href="./css/bootstrap.min.css" />	
+		<link type="text/css" rel="stylesheet" href="css/select.css"/>
+		<script type="text/javascript" src="js/select.js"></script>
+		<script type="text/javascript" src="js/xlsx.full.min.js"></script>
+		<script src="https://cdn.bootcdn.net/ajax/libs/FileSaver.js/2014-11-29/FileSaver.js"></script>
+		
+	</head>
+	<body>
+		<div class="container">
+		<header>
+			<p class="h-title">
+				随机学生选择器
+			</p>
+			<img src="" />
+		</header>
+		<div class="row  justify-content-center">
+	    <div class="neirong  justify-content-center">		
+		<select id="userList" class="selectContent row"  onchange="doSelect();" >		
+			<option value="" disabled selected hidden>选择需要抽取的班级</option>
+			<option value="ydClass12" >移动应用12班</option>
+			
+		</select>
+		</div>
+		<div style="clear: both;"></div>
+		<div id="xuehao" class="SNo row justify-content-center">选中学生</div>
+		<div class="btn-start" >
+		<button type="button" class="btn btn-default " id="start" onclick="doStart();">
+			<img src="img/kaishi.png" width="20" height="20"/>
+		</button>
+		<button type="button" class="btn btn-default" id="stop" disabled onclick="doStop();">
+			<img src="img/tingzhi.png" width="20" height="20"/>
+		</button>
+		<button type="button" class="btn btn-default" id="delete" onclick="doDelete();">		
+			<img src="img/shanchu.png" width="20" height="20"/>
+		</button>
+		
+		</div>
+		
+		<div class="showStudent" class="row justify-content-center">
+			<ul id="showStudent">
+				
+			</ul>
+		</div>
+		</div>
+		<input  id="file" name="excelFile" type="file" class="x-file" style="display: inline-block;float: left;margin-left: 30px;" >
+		<button  id="saveZipButton" type="button" class="btn" onclick="funSave();"><i class="fa fa-download"></i>  导入</button>
+		</div>
+	</body>
+	<script>
+		
+		$(function(){
+			console.log("aaa");
+			$.get({
+				 url:"json/classList.json",
+				 dataType:"json",
+				 contentType:"application/json",
+				 success:function(data){					 
+					 console.log("vvv");
+					 	var html="<option value='' disabled selected hidden>选择班级</option>";
+						var obj=data.data;
+						for(var i=0;i<obj.length;i++){
+							
+							html+="<option value="+obj[i]["value"]+" onclick='doSelect();'>"+obj[i]["text"]+"</option>";
+						}
+						console.log(html);
+						document.getElementById("userList").innerHTML=html;
+						
+				 }
+				 
+			 });
+			 
+		});
+		
+		var html="";
+		var sheetName="";
+		var excleData=[];
+		var timer=null;
+		var selectStudent="";
+		var subIndex=0;
+		var studentArray=[];
+		var studentAllArray=[];
+		var selectClass="";
+		$("#userList").select2();
+		function doSelect(){			
+			 var obj=$("#userList option:selected"); 
+			 var value=obj.val();
+			 console.log(value);
+			 selectClass=value;
+			 console.log(selectClass);
+				
+		}
+		function doSet(obj){
+			//获取当前点击对象的值以及text内容
+			var value=$(obj).attr("value");
+			var text=$(obj).text();
+			//给下拉框显示的按钮value以及text赋值
+			$("#dropdownMenu1").text(text); 
+		    $("#dropdownMenu1").val(value);
+			//给全局变量selectClass赋值
+			selectClass=value;
+		
+				
+		}
+		function doStart(){
+			if(selectClass=="选择班级"||selectClass=="")
+			{
+				alert("请选择班级");
+				return;
+			}
+			if(selectStudent==""){
+				console.log("aaa");
+				$.ajax({
+					 url:"json/"+selectClass+".json",
+					 dataType:"json",
+					 contentType:"application/json",
+					 type:"get",
+					 success:function(data){					 
+						 var studentNameList=data.studentNameList;
+						 console.log(studentNameList);
+						 studentArray=studentNameList.split(',');
+						 studentAllArray=studentArray;
+						 console.log(studentArray);
+						 changeStudent();
+					 },
+					 completed:function(data){
+						 console.log("bbb");
+					 }
+					 
+				 });
+				
+			}
+			else{
+				changeStudent();
+				
+			}
+			 $("#start").attr('disabled',true);
+			 $("#stop").attr('disabled',false);
+			 $("#delete").attr('disabled',true);
+			 
+			 	
+		}
+		function changeStudent(){
+			//当上一次选择不为空先在学生数组中删除该名学生
+			 if(selectStudent!=""){
+				 studentArray.splice(subIndex,1);
+			 }
+			 if(studentArray.length==0){
+				alert("该班级学生已全部选中");
+				$("#start").attr('disabled',true);
+				$("#stop").attr('disabled',true);				
+				$("#delete").attr('disabled',false);				
+				return;
+			}
+			 timer=setInterval(function()
+				{
+					console.log("开始计时");
+					var x = studentArray.length;
+					var y = 0;
+					var rand = parseInt(Math.random() * (x - y) + y);					
+					document.getElementById("xuehao").innerHTML=studentArray[rand];
+					selectStudent=studentArray[rand];
+					subIndex=rand;
+				},100);
+			
+		}
+		function doDelete(){
+			html="";
+			selectStudent="";
+			subIndex=0;
+			document.getElementById("showStudent").innerHTML=html;
+		}
+		function doStop(){
+			if(timer!=null){
+				clearInterval(timer);
+			}
+			html+="<li class='showStudent'>"+selectStudent+"</li>";
+			document.getElementById("showStudent").innerHTML=html;
+			 $("#start").attr('disabled',false);			 
+			 $("#stop").attr('disabled',true);	
+			 $("#delete").attr('disabled',false);
+			 
+		}
+		
+	</script>
+	<script>
+		//首先监听input框的变动，选中一个新的文件会触发change事件
+		document.querySelector("#file").addEventListener("change", function () {
+		  //获取到选中的文件
+		  var file = document.querySelector("#file").files[0];
+		  var type = file.name.split('.');
+		  if (type[type.length - 1] !== 'xlsx' && type[type.length - 1] !== 'xls') {
+		    alert('只能选择excel文件导入');
+		    return false;
+		  }
+		  const reader = new FileReader();
+		  reader.readAsBinaryString(file);
+		  reader.onload = (e) => {
+		    const data = e.target.result;
+		    const zzexcel = window.XLS.read(data, {
+		      type: 'binary'
+		    });
+		    const result = [];
+			sheetName=zzexcel.SheetNames[0];			
+			console.log(sheetName);
+		    //for (let i = 0; i < zzexcel.SheetNames.length; i++) {
+		      const newData = window.XLS.utils.sheet_to_json(zzexcel.Sheets[zzexcel.SheetNames[0]]);
+		      result.push(...newData);
+				//}
+		    console.log('result', result);
+			excleData=result;
+		  }
+		});
+		//写一个json文件
+		function funSave() {
+		var str="{\"studentNameList\":\"";
+		for(var i=0;i<excleData.length;i++){
+			var name=excleData[i]["姓名"];
+			console.log(name);
+			var str=str+name
+			if(i<excleData.length-1){
+				str+=',';
+				
+			}
+			 
+			
+		}
+		str=str.trimRight(',');
+		str+="\"}";
+		console.log(str);
+		var json = eval('(' + str + ')');
+		console.log(json);
+		var content = JSON.stringify(json);
+		var blob = new Blob([content], {type: "text/plain;charset=utf-8"});
+		      saveAs(blob, sheetName+".json");
+		}
+	</script>
+</html>
